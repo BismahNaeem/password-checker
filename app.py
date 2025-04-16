@@ -1,67 +1,76 @@
-import streamlit as st
-from zxcvbn import zxcvbn
-import random
 import string
+import random
+import streamlit as st
 
-# Function to analyze password strength
-def password_strength(password):
-    if not password:
-        return 'No input', 'gray', None
+import re
+# step 1
+def genrete_password(length):
+    characters = string.digits + string.ascii_letters + "!@#$%^&*"
+    return "".join(random.choice(characters) for i in range(length))
+    
 
-    result = zxcvbn(password)
-    score = result['score']
+# step 2
+def check_password_strength(password):
+    score = 0
+    common_Passwords = ["12345678","äbc123","Khan123","pakistan123","password"]
+    if password in common_Passwords:
+        return "❌ This password is too common. Choose a more unique one.", "Weak"
+    
+    feedback = []
+    
+    if len(password) >= 8:
+        score += 1
+    else:
+        feedback.append("🔹 Password should be at least 8 characters long.")
 
-    if score == 0:
-        return 'Very Weak', 'red', result
-    elif score == 1:
-        return 'Weak', 'orange', result
-    elif score == 2:
-        return 'Moderate', 'yellow', result
+    if re.search(r"[A-Z]", password) and re.search(r"[a-z]", password):
+        score += 1 
+    else:
+        feedback.append("🔹 Include both uppercase and lowercase letters.")
+        
+    if re.search(r"\d",password):
+        score += 1
+    else:
+        feedback.append("🔹 Add at least one number (0-9).")
+        
+    if re.search(r"[!@#$%^&*]",password):
+        score += 1
+    else:
+        feedback.append("🔹 Include at least one special character (!@#$%^&*).")
+    
+    if score == 4:
+        return "✅ Strong Password!", "Strong"
     elif score == 3:
-        return 'Strong', 'blue', result
-    elif score == 4:
-        return 'Very Strong', 'green', result
-    return 'Unknown', 'gray', result
+        return "⚠️ Moderate Password - Consider adding more security features.", "Moderate"
+    else:
+        return "\n".join(feedback),"Weak"
 
-# Function to suggest a strong password
-def suggest_password(length=12):
-    characters = string.ascii_letters + string.digits + string.punctuation
-    return ''.join(random.choice(characters) for _ in range(length))
+st.title("🔐 Password Strength Meter")
+    
+check_password = st.text_input("Enter your password",type="password")
+if st.button("Check Strength"):
+    if check_password:
+        result , Strength = check_password_strength(check_password)
+        if Strength == "Strong":
+            st.success(result)
+            st.balloons()
+        elif Strength == "Moderate":
+            st.warning(result)
+        else:
+            st.error("Weak Password - Improve it using these tips:")
+            for tip in result.split("\n"):
+              st.write(tip)
+        
+    else:
+        st.warning("Please enter a password")    
+        
+    
+    
+# step 2 complete
 
-# Streamlit App UI
-st.set_page_config(page_title="Password Strength Checker", page_icon="🔐")
-st.title("🔐 Password Strength Checker")
-st.markdown("Check how strong your password is, get suggestions, and helpful tips!")
 
-password = st.text_input("Enter your password", type='password')
-
-if password:
-    strength, color, result = password_strength(password)
-    st.markdown(f"**Password Strength:** <span style='color:{color}; font-size: 20px'>{strength}</span>", unsafe_allow_html=True)
-
-    if result:
-        st.write("🔎 **Details:**")
-        st.write(f"- Crack time (offline): `{result['crack_times_display']['offline_slow_hashing_1e4_per_second']}`")
-        if result['feedback']['warning']:
-            st.warning(f"⚠️ {result['feedback']['warning']}")
-        if result['feedback']['suggestions']:
-            for suggestion in result['feedback']['suggestions']:
-                st.info(f"💡 {suggestion}")
-
-# Suggest strong password
-if st.button("🔁 Suggest a Strong Password"):
-    strong_pass = suggest_password()
-    st.text_input("Here's a strong password you can use:", value=strong_pass, disabled=True)
-
-# Tips for creating strong passwords
-st.markdown("---")
-st.markdown("### 🛡️ Tips for Creating a Strong Password:")
-st.markdown("""
-- Use **uppercase**, **lowercase**, **numbers**, and **symbols**.
-- Avoid common words, names, and patterns.
-- Make it at least **12 characters** long.
-- Don’t reuse old passwords.
-""")
-
-st.markdown("---")
-st.caption("Made with ❤️ using Streamlit and zxcvbn-python.")
+# step 1
+password_length = st.number_input("Enter the length of password", min_value=8,max_value=20, value=10 )
+if st.button("Generate Password"):
+    password = genrete_password(password_length)
+    st.success(f"{password}")
